@@ -118,6 +118,33 @@ details p{margin:8px 0 0}
 footer{border-top:1px solid var(--line);text-align:center;padding:40px 16px calc(40px + env(safe-area-inset-bottom,0px))}
 .fnote{color:var(--muted);font-weight:300;font-size:clamp(15px,4vw,18px)}
 .bye{margin-top:6px;font-weight:800;font-size:clamp(46px,14vw,92px);line-height:1.3;color:var(--g);text-shadow:0 0 24px rgba(245,158,11,.55),0 0 60px rgba(168,85,247,.35)}
+/* ===== Whiteboard video ===== */
+:root{--wb-ink:#F5F3FF}
+:root[data-theme="light"]{--wb-ink:#1A1030}
+.tabs.six{grid-template-columns:repeat(2,1fr)}
+@media(min-width:700px){.tabs.six{grid-template-columns:repeat(6,1fr)}}
+.wb{max-width:1000px;margin-inline:auto}
+.wb-stage{position:relative;width:calc(100% + 24px);margin-inline:-12px;aspect-ratio:16/9;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background-color:var(--card);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:36px 36px}
+.wb-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .5s}
+.wb-svg.on{opacity:1}
+.wb-ln{fill:none;stroke:var(--wb-ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.wb-pen-b{stroke:var(--wb-ink);stroke-width:2;stroke-linejoin:round}
+.wb-tx{font-family:'Alexandria',sans-serif;font-weight:700;fill:var(--wb-ink);text-anchor:middle}
+.wb-ctrl{display:flex;align-items:center;gap:10px;margin-top:14px}
+.wb-btn{width:44px;height:44px;flex:none;border-radius:50%;border:1px solid var(--g);background:var(--card);color:var(--g);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:.2s}
+.wb-prog{position:relative;flex:1;height:8px;border-radius:99px;background:var(--line);cursor:pointer;direction:ltr}
+.wb-prog i{position:absolute;top:0;left:0;bottom:0;width:0;border-radius:inherit;background:linear-gradient(90deg,var(--p),var(--g));box-shadow:0 0 12px rgba(245,158,11,.5);pointer-events:none}
+.wb-time{font-size:13px;color:var(--muted);direction:ltr;white-space:nowrap;font-variant-numeric:tabular-nums}
+.wb-info{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin-top:10px}
+.wb-info b{color:var(--g)}
+#wbmsg{color:var(--g)}
+.wb-quiz{background:var(--card);border:1px solid var(--g);border-radius:var(--r);padding:18px 16px;margin-top:16px;box-shadow:0 0 22px rgba(245,158,11,.25);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.wb-quiz .mq-q{font-size:clamp(16px,4.4vw,19px);margin-bottom:12px}
+.wb-qact{display:flex;justify-content:center;margin-top:14px}
+.wb-end{display:flex;justify-content:center;padding:6px 0}
+.wb-fs{position:absolute;top:8px;inset-inline-end:8px;z-index:2;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--g);font-size:18px;cursor:pointer}
+.wb:fullscreen,.wb:-webkit-full-screen{max-width:none;width:100%;height:100%;overflow:auto;background:var(--bg);padding:10px;box-sizing:border-box}
+.wb:fullscreen .wb-stage,.wb:-webkit-full-screen .wb-stage{width:auto;height:calc(100vh - 130px);aspect-ratio:16/9;margin-inline:auto}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -162,6 +189,7 @@ footer{border-top:1px solid var(--line);text-align:center;padding:40px 16px calc
     <button role="tab" data-t="faq">أسئلة عادية</button>
     <button role="tab" data-t="mcq">أسئلة اختيار من متعدد</button>
     <button role="tab" data-t="map" id="tabmap">خرائط ذهنية قابلة للطباعة</button>
+    <button role="tab" data-t="wb">فيديو الوايت بورد</button>
   </div>
   <section class="panel" id="panel" role="tabpanel"></section>
 </main>
@@ -208,11 +236,11 @@ var CONTENT={"1-1": {"lesson": [["مقدمة", "الطب الرياضي هو أ�
   var th=get('theme');if(th)root.setAttribute('data-theme',th);
   $('theme').onclick=function(){var n=root.getAttribute('data-theme')==='dark'?'light':'dark';root.setAttribute('data-theme',n);set('theme',n)};
 
-  function go(v){for(var k in views)views[k].hidden=k!==v;scrollTo(0,0)}
+  function go(v){wbStop();for(var k in views)views[k].hidden=k!==v;scrollTo(0,0)}
 
   $('subjects').innerHTML=SUBJECTS.map(function(s,i){return '<button class="card" data-s="'+i+'"><img src="'+s.img+'" alt="'+s.alt+'" loading="lazy"></button>'}).join('');
   function cur(){return CONTENT[(S+1)+'-'+L]}
-  function updTabs(){$('tabmap').hidden=false;$('tabs').classList.add('five')}
+  function updTabs(){$('tabmap').hidden=false;$('tabs').classList.add('six')}
   function renderLecs(){var c=10;if(S===0){c=Object.keys(CONTENT).filter(function(k){return k.indexOf('1-')===0}).length}
     var h='';for(var n=1;n<=c;n++)h+='<button class="lec" data-l="'+n+'">محاضرة '+n+'</button>';$('lectures').innerHTML=h}
   renderLecs();
@@ -308,10 +336,401 @@ var CONTENT={"1-1": {"lesson": [["مقدمة", "الطب الرياضي هو أ�
       }});
   }
 
+  /* ===== فيديو الوايت بورد: المحاضرة الأولى والثانية (المراقبة الطبية) ===== */
+  var NS='http://www.w3.org/2000/svg',FULL=[0,0,800,450];
+  var WB_COL={gold:'#F59E0B',purple:'#A855F7',green:'#34D399',pink:'#F472B6',blue:'#60A5FA'};
+  var WB_S={host:null,phase:'idle',playing:false,raf:0,timer:0,sc:[],aud:[],dur:[],ans:{},quizEl:null,idx:0};
+
+  function wbP(d,at,dur,fc,fat,fo){return {k:'p',d:d,at:at,dur:dur,fc:fc||null,fat:fat||0,fo:fo||.85}}
+  function wbT(t,x,y,at,s,c){return {k:'t',t:t,x:x,y:y,at:at,s:s||22,c:c||null}}
+  function wbCirc(cx,cy,r){return 'M'+(cx-r)+' '+cy+'a'+r+' '+r+' 0 1 0 '+(2*r)+' 0a'+r+' '+r+' 0 1 0 '+(-2*r)+' 0Z'}
+  function wbRR(x,y,w,h,r){return 'M'+(x+r)+' '+y+'H'+(x+w-r)+'Q'+(x+w)+' '+y+' '+(x+w)+' '+(y+r)+'V'+(y+h-r)+'Q'+(x+w)+' '+(y+h)+' '+(x+w-r)+' '+(y+h)+'H'+(x+r)+'Q'+x+' '+(y+h)+' '+x+' '+(y+h-r)+'V'+(y+r)+'Q'+x+' '+y+' '+(x+r)+' '+y+'Z'}
+  function wbPlus(cx,cy,s){var a=s*.3,b=s;return 'M'+(cx-a)+' '+(cy-b)+'H'+(cx+a)+'V'+(cy-a)+'H'+(cx+b)+'V'+(cy+a)+'H'+(cx+a)+'V'+(cy+b)+'H'+(cx-a)+'V'+(cy+a)+'H'+(cx-b)+'V'+(cy-a)+'H'+(cx-a)+'Z'}
+  function wbShield(cx,cy,s){return 'M'+cx+' '+(cy-s)+'L'+(cx+s*.85)+' '+(cy-s*.5)+'V'+(cy+s*.1)+'C'+(cx+s*.85)+' '+(cy+s*.7)+' '+(cx+s*.4)+' '+(cy+s*.92)+' '+cx+' '+(cy+s)+'C'+(cx-s*.4)+' '+(cy+s*.92)+' '+(cx-s*.85)+' '+(cy+s*.7)+' '+(cx-s*.85)+' '+(cy+s*.1)+'V'+(cy-s*.5)+'Z'}
+  function wbRehab(cx,cy){return 'M'+(cx+20)+' '+(cy-12)+'A22 22 0 1 0 '+(cx+22)+' '+(cy+8)+'M'+(cx+22)+' '+(cy+8)+'L'+(cx+10)+' '+(cy+14)+'M'+(cx+22)+' '+(cy+8)+'L'+(cx+24)+' '+(cy-6)}
+
+  function wbIcon(kind,c,cy,at){
+    if(kind==='check')return [wbP('M'+(c-26)+' '+cy+'L'+(c-8)+' '+(cy+18)+'L'+(c+26)+' '+(cy-20),at,.9)];
+    if(kind==='compass')return [wbP(wbCirc(c,cy,26),at,1.2),wbP('M'+(c-10)+' '+(cy+10)+'L'+(c+10)+' '+(cy-10)+'M'+(c+10)+' '+(cy-10)+'L'+(c+2)+' '+(cy-9)+'M'+(c+10)+' '+(cy-10)+'L'+(c+9)+' '+(cy-2),at+1.2,.8)];
+    if(kind==='pulse')return [wbP('M'+(c-30)+' '+cy+'L'+(c-12)+' '+cy+'L'+(c-5)+' '+(cy-20)+'L'+(c+4)+' '+(cy+20)+'L'+(c+11)+' '+cy+'L'+(c+30)+' '+cy,at,1.6)];
+    if(kind==='plus')return [wbP(wbPlus(c,cy,24),at,1.5)];
+    if(kind==='target')return [wbP(wbCirc(c,cy,26),at,1),wbP(wbCirc(c,cy,14),at+1,.7),wbP(wbCirc(c,cy,3),at+1.7,.4)];
+    if(kind==='shield')return [wbP(wbShield(c,cy,28),at,1.4)];
+    return [wbP(wbRehab(c,cy),at,1.6)];
+  }
+  function wbCards(labels,icons,start,step){
+    var cols=[WB_COL.purple,WB_COL.gold,WB_COL.green,WB_COL.pink],out=[];
+    labels.forEach(function(lb,i){
+      var cx=[140,320,500,680][i],at=start+i*step;
+      out.push(wbP(wbRR(cx-75,130,150,190,16),at,1.4,cols[i],at+1.4,.2));
+      out=out.concat(wbIcon(icons[i],cx,210,at+1.6));
+      out.push(wbT(lb,cx,300,at+3.2,20,null));
+    });
+    return out;
+  }
+  function wbHistory(){
+    var out=[wbT('تاريخ الطب الرياضي',400,70,.5,28,WB_COL.gold),wbP('M60 262L740 262',1,2.5)];
+    [['1896','أولمبياد أثينا',120,WB_COL.purple],['1913','يوم طبي دراسي',300,WB_COL.gold],['1920','معهد طبي رياضي',480,WB_COL.green],['1928','مؤتمر أمستردام',660,WB_COL.pink]].forEach(function(n,i){
+      var at=5+i*7;
+      out.push(wbP(wbCirc(n[2],262,14),at,.8,n[3],at+.8,.9),wbT(n[0],n[2],212,at+.8,30,n[3]),wbT(n[1],n[2],310,at+1.4,18,null));
+    });
+    return out;
+  }
+
+  var WB_SCENES=[
+    {title:'التعريف',src:'s1-l1-scene1.mp3',dur:19.97,
+     cam:[[0,FULL],[3.5,[20,130,460,259]],[12,FULL]],
+     els:[
+      wbT('الطب الرياضي',400,70,.6,40,WB_COL.gold),
+      wbP(wbCirc(250,190,28),1.5,1,WB_COL.gold,6),
+      wbP('M250 218L250 330',2.5,.8),
+      wbP('M250 245L205 282',3.3,.6),
+      wbP('M250 245L300 215',3.6,.6),
+      wbP('M250 330L215 398',4.2,.7),
+      wbP('M250 330L290 398',4.5,.7),
+      wbP('M560 300C470 240 490 170 560 205C630 170 650 240 560 300Z',6.5,1.8,WB_COL.pink,9),
+      wbP('M430 352L480 352L494 322L508 380L522 352L700 352',9.5,1.6),
+      wbT('تعريف الطب الرياضي',400,420,12.5,22,null)
+     ]},
+    {title:'التاريخ',src:'s1-l1-scene2.mp3',dur:38.41,
+     cam:[[0,FULL],[3,[-110,90,460,259]],[10,[70,90,460,259]],[17,[250,90,460,259]],[24,[430,90,460,259]],[33,FULL]],
+     els:wbHistory()},
+    {title:'الأهداف',src:'s1-l1-scene3.mp3',dur:33.97,
+     cam:[[0,FULL],[5,[0,110,460,259]],[13,[340,110,460,259]],[24,FULL]],
+     els:[wbT('أقسام الطب الرياضي',400,70,.4,28,WB_COL.gold),wbT('حسب Bent CARLLY',400,108,1,18,'var(--muted)')]
+          .concat(wbCards(['الاختيار','التوجيه','المراقبة','العلاج'],['check','compass','pulse','plus'],2,5))},
+    {title:'الأهمية',src:'s1-l1-scene4.mp3',dur:20.45,
+     cam:[[0,FULL],[4,[50,103,400,225]],[9,[350,103,400,225]],[15,FULL]],
+     els:[
+      wbT('أهمية الطب الرياضي',400,70,.4,28,WB_COL.gold),
+      wbP(wbShield(250,215,70),1.5,2.2,WB_COL.blue,3.8),
+      wbP('M220 215L242 240L290 190',4.2,.9),
+      wbT('الوقاية',250,318,4.8,26,null),
+      wbP(wbPlus(550,215,60),6.5,2,WB_COL.pink,8.5),
+      wbT('العلاج',550,318,9,26,null),
+      wbP('M340 215L450 215M435 200L450 215L435 230',11,1),
+      wbT('الوقاية قبل العلاج',400,400,13,24,WB_COL.gold)
+     ]},
+    {title:'الأقسام',src:'s1-l1-scene5.mp3',dur:22.13,
+     cam:[[0,FULL],[5,[0,110,460,259]],[12,[340,110,460,259]],[18,FULL]],
+     els:[wbT('الأقسام المتخصصة',400,70,.4,28,WB_COL.gold)]
+          .concat(wbCards(['التوجيهي','الوقائي','العلاجي','التأهيلي'],['target','shield','plus','rehab'],2,4))}
+  ];
+
+  /* Quiz after scene index: pauses the film, then continues */
+  var WB_QUIZ={
+    1:{q:'في أي سنة استُخدم مصطلح "الطب الرياضي" لأول مرة؟',o:['1896','1913','1928'],a:0},
+    2:{q:'أي هذه الأقسام لا تدخل ضمن أهداف الطب الرياضي حسب Bent CARLLY؟',o:['الاختيار','المراقبة','التسويق'],a:2},
+    4:{q:'أي قسم يُعنى بإعادة المصاب إلى لياقته بعد الإصابة؟',o:['الوقائي','التأهيلي','التوجيهي'],a:1}
+  };
+
+  /* ===== الوايت بورد: المحاضرة الثانية (مهام الطبيب وأدوار المراقبة الطبية) ===== */
+  var WB_L2_SCENES=[
+    {title:'المهام',src:'s1-l2-scene1.mp3',dur:30.48,
+     cam:[[0,FULL],[3,[150,80,460,259]],[13,[190,120,460,259]],[24,FULL]],
+     els:[
+      wbT('المراقبة الطبية',400,70,.4,40,WB_COL.gold),
+      wbP('M560 300C470 240 490 170 560 205C630 170 650 240 560 300Z',.8,1.6,WB_COL.pink,2.2),
+      wbP(wbCirc(250,170,26),2.6,1,WB_COL.gold,4.8),
+      wbP('M250 196L250 300',3.5,.8),
+      wbP('M250 230L210 280',4.0,.5),
+      wbP('M250 230L290 280',4.3,.5),
+      wbT('الفحص',140,370,3.0,22),
+      wbT('التشخيص',300,370,3.8,22),
+      wbT('العلاج',470,370,4.6,22),
+      wbT('المتابعة',630,370,5.4,22),
+      wbP('M330 330L420 290L480 305L640 240',7.5,2),
+      wbT('الأداء البدني',640,215,10,20,WB_COL.gold),
+      wbT('بكفاءة وأمان',400,425,24,26,WB_COL.gold)
+     ]},
+    {title:'الواجبات',src:'s1-l2-scene2.mp3',dur:40.94,
+     cam:[[0,FULL]],
+     els:[wbT('الواجبات التخصصية',400,70,.4,30,WB_COL.gold)]
+          .concat(wbCards(['ذوو الاحتياجات','الحالات الحادة','التغذية','السفر'],['target','pulse','check','compass'],.8,1))
+          .concat([
+      wbT('الحالات الطارئة',400,362,9.6,24,WB_COL.pink),
+      wbP('M120 400L260 400L280 380L300 420L320 400L680 400',12,2.5),
+      wbT('السكتة القلبية',250,440,18,20),
+      wbT('بلع اللسان',550,440,28,20)
+     ])},
+    {title:'الاختبارات',src:'s1-l2-scene3.mp3',dur:35.66,
+     cam:[[0,FULL]],
+     els:[
+      wbT('أنواع الاختبارات الطبية',400,70,.4,30,WB_COL.gold),
+      wbT('ثلاثة أنواع رئيسة',400,108,1,18,'var(--muted)'),
+      wbP(wbRR(60,130,220,180,16),3.4,1.2,WB_COL.purple,4.6,.2)
+    ].concat(wbIcon('check',170,210,4.6)).concat([
+      wbT('الأولي',170,300,5.2,22),
+      wbT('الكفاءة واللياقة',170,350,5.6,16,'var(--muted)'),
+      wbP(wbRR(290,130,220,180,16),6.1,1.2,WB_COL.gold,7.3,.2)
+    ]).concat(wbIcon('pulse',400,210,7.5)).concat([
+      wbT('المكرر',400,300,9.4,22),
+      wbT('تطور المراقبة',400,350,9.8,16,'var(--muted)'),
+      wbP(wbRR(520,130,220,180,16),13.0,1.2,WB_COL.green,14.2,.2)
+    ]).concat(wbIcon('target',630,210,14.5)).concat([
+      wbT('الإضافي',630,300,16.2,22),
+      wbT('التأهيل والعودة',630,350,24,16,'var(--muted)')
+    ])},
+    {title:'الأهداف',src:'s1-l2-scene4.mp3',dur:31.27,
+     cam:[[0,FULL]],
+     els:[
+      wbT('أهداف الاختبارات الطبية',400,70,.4,30,WB_COL.gold),
+      wbP(wbCirc(150,200,38),.8,1.4,WB_COL.blue,2.2,.2),
+      wbP('M180 230L220 270',2.0,.7),
+      wbT('الكشف المبكر',150,320,1.6,22),
+      wbT('العيوب الخلقية',150,362,2.6,16,'var(--muted)'),
+      wbP('M330 330L400 280L470 300L540 210',3.4,1.8),
+      wbT('النمو والتوازن',400,370,4.6,22),
+      wbP(wbShield(650,210,44),8.0,1.6,WB_COL.pink,9.2,.2),
+      wbT('الوقاية',650,320,9.6,22),
+      wbT('من المضاعفات',650,362,11,16,'var(--muted)'),
+      wbT('التوعية الصحية',400,420,14.5,26,WB_COL.gold),
+      wbP('M300 436L500 436',13.5,1.0)
+     ]}
+  ];
+  var WB_L2_QUIZ={
+    1:{q:'أي مما يلي ليس من مهام الطبيب الرياضي المذكورة في المشهد؟',o:['متابعة التغذية','تشخيص الإصابات','تصميم الملاعب'],a:2},
+    2:{q:'كم عدد أنواع الاختبارات الطبية الرياضية؟',o:['اثنان','ثلاثة','أربعة'],a:1},
+    3:{q:'أي هذه الأمور تكشفها الاختبارات الطبية الرياضية؟',o:['التشوهات الجسدية','نوع الملابس','لون الملعب'],a:0}
+  };
+  /* Lesson key -> whiteboard data. Player swaps WB_SCENES/WB_QUIZ on mount. */
+  var WB_DATA={'1-1':{scenes:WB_SCENES,quiz:WB_QUIZ},'1-2':{scenes:WB_L2_SCENES,quiz:WB_L2_QUIZ}};
+
+  function wbFmt(s){s=Math.floor(s||0);var m=Math.floor(s/60),r=s%60;return (m<10?'0':'')+m+':'+(r<10?'0':'')+r}
+
+  function wbBuild(stage){
+    WB_S.sc=WB_SCENES.map(function(sc){
+      var svg=document.createElementNS(NS,'svg');
+      svg.setAttribute('class','wb-svg');svg.setAttribute('viewBox',FULL.join(' '));svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+      var nodes=sc.els.map(function(e){
+        var n;
+        if(e.k==='p'){
+          n=document.createElementNS(NS,'path');n.setAttribute('d',e.d);n.setAttribute('pathLength','1');n.setAttribute('class','wb-ln');
+          n.setAttribute('fill',e.fc||'none');if(e.fc)n.setAttribute('fill-opacity','0');
+        }else{
+          n=document.createElementNS(NS,'text');n.setAttribute('class','wb-tx');n.setAttribute('x',e.x);n.setAttribute('y',e.y);
+          n.setAttribute('font-size',e.s);n.setAttribute('opacity','0');n.textContent=e.t;
+          if(e.c)n.style.fill=e.c;
+        }
+        svg.appendChild(n);return n;
+      });
+      var pen=document.createElementNS(NS,'g');pen.setAttribute('class','wb-pen');pen.setAttribute('opacity','0');
+      var pb=document.createElementNS(NS,'path');pb.setAttribute('d','M0 0L12 -10H74V10H12Z');pb.setAttribute('fill',WB_COL.gold);pb.setAttribute('class','wb-pen-b');
+      pen.appendChild(pb);svg.appendChild(pen);
+      stage.appendChild(svg);
+      return {svg:svg,nodes:nodes,pen:pen};
+    });
+  }
+
+  /* Render scene k at local time t (seconds). Pure function of t, so seek/restart are exact. */
+  function wbDraw(k,t){
+    var sc=WB_SCENES[k],b=WB_S.sc[k],cam=sc.cam,i=-1,v,j,p;
+    for(j=0;j<cam.length;j++)if(cam[j][0]<=t)i=j;
+    if(i<0)v=cam[0][1];
+    else{
+      var from=i>0?cam[i-1][1]:cam[i][1],to=cam[i][1];
+      p=Math.min(1,(t-cam[i][0])/1.8);p=p*p*(3-2*p);
+      v=to.map(function(x,z){return from[z]+(x-from[z])*p});
+    }
+    b.svg.setAttribute('viewBox',v.map(function(x){return x.toFixed(2)}).join(' '));
+    var act=null;
+    sc.els.forEach(function(e,z){
+      var n=b.nodes[z];
+      if(e.k==='p'){
+        var pr=Math.max(0,Math.min(1,(t-e.at)/e.dur));
+        n.setAttribute('stroke-dasharray','1 3');
+        n.setAttribute('stroke-dashoffset',(1-pr).toFixed(4));
+        if(e.fc)n.setAttribute('fill-opacity',(Math.max(0,Math.min(1,(t-e.fat)/.9))*e.fo).toFixed(3));
+        if(pr>0&&pr<1)act=[n,pr];
+      }else{
+        n.setAttribute('opacity',Math.max(0,Math.min(1,(t-e.at)/.6)).toFixed(3));
+      }
+    });
+    if(act){
+      var len=act[0]._len||(act[0]._len=act[0].getTotalLength());
+      var pt=act[0].getPointAtLength(act[1]*len);
+      b.pen.setAttribute('transform','translate('+pt.x.toFixed(1)+' '+pt.y.toFixed(1)+') rotate(-38)');
+      b.pen.setAttribute('opacity','1');
+    }else b.pen.setAttribute('opacity','0');
+  }
+
+  function wbTotal(){return WB_S.dur.reduce(function(a,b){return a+b},0)}
+  function wbBtn(){
+    var b=$('wbplay');if(!b)return;
+    b.textContent=WB_S.phase==='end'?'↺':(WB_S.playing?'❚❚':'▶');
+    b.setAttribute('aria-label',WB_S.phase==='end'?'إعادة المشاهدة':(WB_S.playing?'إيقاف مؤقت':'تشغيل'));
+  }
+  function wbUI(){
+    if(!WB_S.host)return;
+    var k=WB_S.idx,tot=wbTotal(),bef=0,i;
+    for(i=0;i<k;i++)bef+=WB_S.dur[i];
+    var a=WB_S.aud[k],cur=bef+((a&&a.currentTime)||0);
+    if(WB_S.phase==='end')cur=tot;
+    $('wbfill').style.width=Math.min(100,cur/tot*100).toFixed(2)+'%';
+    $('wbtime').textContent=wbFmt(cur)+' / '+wbFmt(tot);
+    $('wbscene').innerHTML='المشهد <b>'+(k+1)+'</b> من '+WB_SCENES.length+' · '+WB_SCENES[k].title;
+    wbBtn();
+  }
+
+  function wbLoop(){
+    WB_S.raf=0;
+    if(!WB_S.playing)return;
+    var a=WB_S.aud[WB_S.idx];
+    wbDraw(WB_S.idx,a.currentTime);
+    wbUI();
+    WB_S.raf=requestAnimationFrame(wbLoop);
+  }
+  function wbPlay(){
+    if(!WB_S.host)return;
+    if(WB_S.phase!=='play')return;
+    var a=WB_S.aud[WB_S.idx],pr=a.play();
+    if(pr&&pr.catch)pr.catch(function(){WB_S.playing=false;wbBtn()});
+    WB_S.playing=true;wbBtn();
+    if(!WB_S.raf)WB_S.raf=requestAnimationFrame(wbLoop);
+  }
+  function wbPause(){
+    WB_S.playing=false;
+    var a=WB_S.aud[WB_S.idx];if(a)a.pause();
+    if(WB_S.raf){cancelAnimationFrame(WB_S.raf);WB_S.raf=0}
+    wbUI();
+  }
+  function wbClearQuiz(){
+    clearTimeout(WB_S.timer);
+    if(WB_S.quizEl){WB_S.quizEl.innerHTML='';WB_S.quizEl.hidden=true}
+  }
+  function wbGo(k,t){
+    WB_S.aud.forEach(function(a,i){if(i!==k)a.pause()});
+    WB_S.idx=k;
+    WB_S.sc.forEach(function(b,i){b.svg.classList.toggle('on',i===k)});
+    try{WB_S.aud[k].currentTime=t||0}catch(e){}
+    wbDraw(k,t||0);
+    wbUI();
+  }
+  function wbNext(i){
+    if(i<WB_SCENES.length-1){wbGo(i+1,0);wbPlay()}
+    else{
+      WB_S.phase='end';WB_S.playing=false;
+      wbDraw(i,WB_S.dur[i]);
+      wbUI();
+      var box=WB_S.quizEl;
+      box.innerHTML='<div class="wb-end"><button class="qbtn pri" type="button" id="wbagain">إعادة المشاهدة</button></div>';
+      box.hidden=false;
+      $('wbagain').onclick=wbReset;
+    }
+  }
+  function wbQuiz(i){
+    var Q=WB_QUIZ[i],box=WB_S.quizEl,done=false;
+    WB_S.phase='quiz';WB_S.playing=false;wbBtn();
+    box.innerHTML='<div class="wb-quiz"><div class="mq-q">'+Q.q+'</div><div class="mq-o">'+
+      Q.o.map(function(o,j){return '<button class="opt" type="button" data-j="'+j+'">'+o+'</button>'}).join('')+
+      '</div><div class="wb-qact"><button class="qbtn" type="button" data-skip>تخطي</button></div></div>';
+    box.hidden=false;
+    function finish(){
+      if(done)return;done=true;
+      wbClearQuiz();
+      WB_S.phase='play';
+      wbNext(i);
+    }
+    var btns=box.querySelectorAll('.opt');
+    btns.forEach(function(b){
+      b.onclick=function(){
+        if(WB_S.ans[i])return;
+        WB_S.ans[i]=true;
+        var j=+b.getAttribute('data-j');
+        btns.forEach(function(x){x.disabled=true});
+        if(j===Q.a)b.classList.add('ok');
+        else{b.classList.add('no');btns[Q.a].classList.add('ok')}
+        WB_S.timer=setTimeout(finish,1800);
+      };
+    });
+    box.querySelector('[data-skip]').onclick=function(){WB_S.ans[i]=true;finish()};
+  }
+  function wbEnded(i){
+    if(WB_S.idx!==i||WB_S.phase!=='play')return;
+    wbPause();
+    wbDraw(i,WB_S.aud[i].duration||WB_S.dur[i]);
+    if(WB_QUIZ[i]&&!WB_S.ans[i]){wbQuiz(i);return}
+    wbNext(i);
+  }
+  function wbReset(){
+    wbClearQuiz();
+    WB_S.ans={};
+    WB_S.phase='play';
+    wbGo(0,0);
+    wbPlay();
+  }
+  function wbToggle(){
+    if(WB_S.phase==='end'){wbReset();return}
+    if(WB_S.phase==='quiz')return;
+    if(WB_S.playing)wbPause();else wbPlay();
+  }
+  function wbSeek(frac){
+    var target=frac*wbTotal(),acc=0,k=0,t=0,wasPlaying=WB_S.playing;
+    for(k=0;k<WB_SCENES.length;k++){
+      var d=WB_S.dur[k];
+      if(target<acc+d||k===WB_SCENES.length-1){t=target-acc;break}
+      acc+=d;
+    }
+    WB_S.playing=false;
+    if(WB_S.raf){cancelAnimationFrame(WB_S.raf);WB_S.raf=0}
+    WB_S.aud.forEach(function(a){a.pause()});
+    wbClearQuiz();
+    WB_S.phase='play';
+    wbGo(k,Math.max(0,Math.min(t,WB_S.dur[k]-.05)));
+    if(wasPlaying)wbPlay();
+  }
+  function wbStop(){
+    if(!WB_S.host)return;
+    WB_S.playing=false;
+    if(WB_S.raf){cancelAnimationFrame(WB_S.raf);WB_S.raf=0}
+    WB_S.aud.forEach(function(a){a.pause()});
+    clearTimeout(WB_S.timer);
+    WB_S.host=null;WB_S.phase='idle';
+  }
+  function wbMount(host,key){
+    wbStop();
+    WB_SCENES=WB_DATA[key].scenes;WB_QUIZ=WB_DATA[key].quiz;
+    host.innerHTML='<div class="wb" id="wbwrap"><div class="wb-stage" id="wbstage"><button class="wb-fs" id="wbfs" type="button" aria-label="ملء الشاشة">⛶</button></div>'+
+      '<div class="wb-ctrl"><button class="wb-btn" id="wbplay" type="button" aria-label="تشغيل">▶</button>'+
+      '<button class="wb-btn" id="wbre" type="button" aria-label="إعادة التشغيل">↺</button>'+
+      '<div class="wb-prog" id="wbprog" role="progressbar" aria-label="شريط التقدم"><i id="wbfill"></i></div>'+
+      '<span class="wb-time" id="wbtime"></span></div>'+
+      '<div class="wb-info"><span id="wbscene"></span><span id="wbmsg"></span></div>'+
+      '<div id="wbquiz" hidden></div></div>';
+    WB_S.host=host;WB_S.phase='play';WB_S.playing=false;WB_S.raf=0;WB_S.ans={};WB_S.idx=0;
+    WB_S.quizEl=$('wbquiz');
+    wbBuild($('wbstage'));
+    WB_S.dur=WB_SCENES.map(function(s){return s.dur});
+    WB_S.aud=WB_SCENES.map(function(sc,i){
+      var a=new Audio(encodeURI(sc.src));
+      a.preload='auto';
+      a.addEventListener('loadedmetadata',function(){if(isFinite(a.duration))WB_S.dur[i]=a.duration;wbUI()});
+      a.addEventListener('ended',function(){wbEnded(i)});
+      a.addEventListener('error',function(){$('wbmsg').textContent='تعذّر تحميل الصوت: ضع ملفات WAV بجانب index.html'});
+      return a;
+    });
+    $('wbplay').onclick=wbToggle;
+    $('wbre').onclick=wbReset;
+    $('wbfs').onclick=function(){
+      var d=document,w=$('wbwrap');
+      if(d.fullscreenElement||d.webkitFullscreenElement){
+        (d.exitFullscreen||d.webkitExitFullscreen).call(d);
+      }else{
+        var rq=w.requestFullscreen||w.webkitRequestFullscreen;
+        if(rq)rq.call(w);
+        try{screen.orientation.lock('landscape')}catch(e){}
+      }
+    };
+    $('wbprog').onclick=function(e){var r=this.getBoundingClientRect();wbSeek(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)))};
+    wbGo(0,0);
+  }
+
   function tab(t){
+    wbStop();
     T=t;document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.t===t)});
     var p=$('panel'),html='',c=cur()||{},LS=c.lesson,SM=c.summary,FQ=c.faq,MQ=c.mcq,empty={read:'لم يتوفر الدرس بعد',sum:'لا يوجد ملخص',faq:'لا توجد أسئلة',mcq:'لا توجد أسئلة',map:'ستتوفر الخريطة الذهنية عند توفر الدرس'};
     if(!c.lesson){html='<p style="text-align:center;margin:30px auto">'+empty[t]+'</p>';p.innerHTML=html;return}
+    if(t==='wb'){var wk=(S+1)+'-'+L;if(WB_DATA[wk])wbMount(p,wk);else p.innerHTML='<p style="text-align:center;margin:30px auto">سيتم إضافة فيديو هذه المحاضرة لاحقاً</p>';return}
     if(t==='faq'){flashDeck(p,FQ||[]);return}
     if(t==='mcq'){mcqDeck(p,MQ||[]);return}
     if(t==='read'){
